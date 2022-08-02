@@ -35,4 +35,4 @@ type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: """ + output)
 print("-----------------------------------")
-print("kubectl apply -f registry-credentials.yml")
+print("kubectl apply -f registry-credentials.yaml")
