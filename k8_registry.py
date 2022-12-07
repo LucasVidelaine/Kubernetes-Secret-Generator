@@ -1,38 +1,45 @@
 import base64
+import json
+import yaml
 
-registry = input("Registry URL : ")
-namespace = input("Namespace : ")
-username = input("Username : ")
-password = input("Password : ")
-email = input("Email : ")
-print("-----------------------------------")
-userpass = username+":"+password
-basic_auth = base64.b64encode(userpass.encode("utf-8")).decode("utf-8")
-print(basic_auth)
-print("-----------------------------------")
-dockerconfigjson = """
-{
-    "auths": {
-        \""""+registry+"""\":{
-            "username":\""""+username+"""\",
-            "password":\""""+password+"""\",
-            "email":\""""+email+"""\",
-            "auth":\""""+basic_auth+"""\"
-        }
+# Prompt the user for information
+registry_url = input('Enter the registry URL: ')
+namespace = input('Enter the namespace where the secret should be created: ')
+username = input('Enter your username: ')
+password = input('Enter your password: ')
+
+# Generate a base64-encoded auth string for the Docker credentials
+auth_string = base64.b64encode(f'{username}:{password}'.encode())
+
+# Create a Docker credentials object
+creds = {
+  "auths":{
+    registry_url:{
+      "username":username,
+      "password":password,
+      "auth":auth_string.decode()
     }
+  }
 }
-"""
-print(dockerconfigjson)
-print("-----------------------------------")
-output = base64.b64encode(dockerconfigjson.encode("utf-8")).decode("utf-8")
-print("""
-apiVersion: v1
-kind: Secret
-metadata:
-  name: registry-credentials
-  namespace: """+ namespace +"""
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: """ + output)
-print("-----------------------------------")
-print("kubectl apply -f registry-credentials.yaml")
+
+# Encode the Docker credentials as a base64 string
+encoded_creds = base64.b64encode(json.dumps(creds).encode()).decode()
+
+# Create a Kubernetes secret object
+secret = {
+  "apiVersion": "v1",
+  "kind": "Secret",
+  "metadata": {
+    "name": "registry-credentials",
+    "namespace": namespace
+  },
+  "type": "kubernetes.io/dockerconfigjson",
+  "data": {
+    ".dockerconfigjson": encoded_creds
+  }
+}
+
+# Write the secret to a file
+with open('secret.yaml', 'w') as f:
+  f.write(yaml.dump(secret))
+print("kubectl apply -f secret.yaml")
